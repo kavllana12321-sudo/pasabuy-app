@@ -1,0 +1,13 @@
+﻿"use client";
+import Link from "next/link";
+import { useState } from "react";
+import { useApp } from "@/components/AppProvider";
+import { dateTime } from "@/lib/types";
+export default function NotificationsPage() {
+  const { data, mutate } = useApp(); const [filter, setFilter] = useState("all"); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  if (!data) return null;
+  const unread = data.notifications.filter(n => !n.read).length;
+  const notifications = data.notifications.filter(n => filter === "all" || !n.read);
+  async function read(id?: string) { setBusy(true); setError(""); try { await mutate("readNotifications", id ? { id } : {}); } catch (err) { setError(err instanceof Error ? err.message : "Could not update notifications."); } finally { setBusy(false); } }
+  return <><div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">Your latest updates</p><h1 className="page-title">Notifications</h1><p className="muted mt-2">{unread ? `${unread} unread updates` : "You're all caught up."}</p></div><button className="btn-secondary" disabled={busy || unread === 0} onClick={() => void read()}>Mark all as read</button></div>{error && <p className="error mb-5" role="alert">{error}</p>}<div className="mb-5 flex gap-2">{["all", "unread"].map(f => <button className={filter === f ? "btn" : "btn-secondary"} key={f} onClick={() => setFilter(f)}>{f === "all" ? "All updates" : `Unread (${unread})`}</button>)}</div><section className="card !p-0">{notifications.length === 0 ? <div className="px-5 py-16 text-center"><div className="mb-4 text-4xl">♧</div><h2 className="font-bold">{filter === "unread" ? "No unread notifications" : "Updates will appear here"}</h2><p className="muted mt-2">Booking activity and new messages will keep you informed.</p></div> : notifications.map(n => <article key={n.id} className={`flex gap-4 border-b border-slate-100 p-5 last:border-b-0 ${n.read ? "" : "bg-orange-50/50"}`}><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n.read ? "bg-slate-200" : "bg-orange-500"}`} aria-label={n.read ? "Read" : "Unread"} /><div className="min-w-0 flex-1"><h2 className="text-sm font-bold">{n.title}</h2><p className="muted mt-1 break-words">{n.text}</p><p className="mt-2 text-xs text-slate-400">{dateTime(n.createdAt)}</p><div className="mt-3 flex gap-4"><Link href={n.href} onClick={() => { if (!n.read) void read(n.id); }} className="text-sm font-semibold text-orange-700">View update →</Link>{!n.read && <button disabled={busy} className="text-xs text-slate-500 underline" onClick={() => void read(n.id)}>Mark as read</button>}</div></div></article>)}</section></>;
+}

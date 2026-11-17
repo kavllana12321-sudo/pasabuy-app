@@ -1,0 +1,29 @@
+﻿services:
+  app:
+    build: ..
+    restart: unless-stopped
+    environment:
+      APP_ORIGIN: https://${DOMAIN:?Set DOMAIN}
+      PASABUY_DATA_DIR: /data
+      PASABUY_TRUST_PROXY: "true"
+      PASABUY_DEMO_MODE: "false"
+    volumes:
+      - records:/data
+    expose:
+      - "3000"
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+    depends_on:
+      - app
+volumes:
+  records:
+  certificates:

@@ -1,0 +1,11 @@
+import { existsSync } from 'node:fs';
+if (existsSync('.env.local')) process.loadEnvFile('.env.local');
+﻿import { spawn } from 'node:child_process';
+import { isAbsolute } from 'node:path';
+if (process.env.PASABUY_DEMO_MODE === 'true') throw new Error('Demo mode cannot run on the production server.');
+const origin = new URL(process.env.APP_ORIGIN || '');
+if (origin.protocol !== 'https:' || origin.pathname !== '/' || origin.search || origin.hash || origin.username || origin.password) throw new Error('APP_ORIGIN must be your HTTPS website origin.');
+if (!process.env.PASABUY_DATABASE_URL && (!process.env.PASABUY_DATA_DIR || !isAbsolute(process.env.PASABUY_DATA_DIR))) throw new Error('PASABUY_DATA_DIR must be an absolute path on a persistent disk.');
+const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', ...process.argv.slice(2)], { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'production' } });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
+child.on('exit', code => process.exit(code ?? 1));
